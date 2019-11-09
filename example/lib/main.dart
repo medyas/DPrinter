@@ -34,6 +34,7 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       home: Scaffold(
         appBar: AppBar(
           title: const Text('Plugin example app'),
@@ -96,14 +97,15 @@ class _MyAppState extends State<MyApp> {
                   Expanded(
                     child: Text(
                       "Available Devices",
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                   ),
-                  if(_loading)
+                  if (_loading)
                     Container(
                       margin: const EdgeInsets.all(8.0),
                       alignment: Alignment.center,
-                      child: CircularProgressIndicator(),
+                      child: Icon(Icons.bluetooth_searching, size: 32,),
                     ),
                 ],
               ),
@@ -114,8 +116,12 @@ class _MyAppState extends State<MyApp> {
                 shrinkWrap: true,
                 itemBuilder: (context, index) =>
                     _buildItem(_beanList[index].toJson()),
-                itemCount: _boundList.length,
+                itemCount: _beanList.length,
               ),
+            ),
+            RaisedButton(
+              onPressed: () => printDemoLabel(),
+              child: Text("Print Demo"),
             ),
           ],
         ),
@@ -125,7 +131,8 @@ class _MyAppState extends State<MyApp> {
 
   void updateText(bean) {
     print("Recieved Bean : $bean");
-    final item = BeanItem.fromJson(bean);
+    final item = BeanItem.fromJson(Map<String, dynamic>.from(bean));
+    print("item: $item");
     if (item.status == 0)
       _beanList.add(item);
     else if (item.status == 1)
@@ -137,6 +144,9 @@ class _MyAppState extends State<MyApp> {
   getBoundDevices() async {
     final List<Map<String, dynamic>> list = await printer.getBoundDevices();
     _boundList.addAll(list);
+    print("Bound List $list");
+    print(_boundList);
+    setState(() {});
   }
 
   Widget _buildItem(Map<String, dynamic> item) => ListTile(
@@ -146,10 +156,17 @@ class _MyAppState extends State<MyApp> {
         onTap: () => onItemClick(item),
       );
 
-  onItemClick(Map<String, dynamic> item) {
+  onItemClick(Map<String, dynamic> item) async {
     print(item);
+  print("Paired List: $_boundList");
+    final res = await printer
+        .connectToDevice({"name": item["name"], "address": item["address"]});
+    print("Connected to device? $res");
+  }
 
-    printer.connectToDevice({"name": item["name"], "address": item["address"]});
+  printDemoLabel() async {
+    final res = await printer.printLabel({"name": "Random", "price": "12.99"});
+    print("Printed Label? $res");
   }
 }
 

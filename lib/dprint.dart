@@ -23,6 +23,10 @@ class Dprint {
     return await _channel.invokeMethod('isOn');
   }
 
+  Future<bool> get isConnected async {
+    return await _channel.invokeMethod('isConnected');
+  }
+
   Future<void> startScan(Function updateData) async {
     if (_beanList == null)
       _beanList = _stream.receiveBroadcastStream([""]).listen(updateData);
@@ -30,11 +34,15 @@ class Dprint {
   }
 
   Future<List<Map>> getBoundDevices() async {
-    await _channel.invokeMethod('getBoundDevices');
+    return await _channel.invokeMethod('getBoundDevices');
   }
 
-  Future<void> connectToDevice(Map<String, dynamic> device) async {
-    await _channel.invokeMethod('connectToDevice', device);
+  Future<bool> connectToDevice(Map<String, dynamic> device) async {
+    return await _channel.invokeMethod('connectToDevice', device);
+  }
+
+  Future<bool> printLabel(Map<String, dynamic> label) async {
+    return await _channel.invokeMethod('printLabel', label);
   }
 
   Future<void> destroy() async {

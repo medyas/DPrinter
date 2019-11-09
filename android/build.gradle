@@ -40,5 +40,11 @@ android {
 }
 
 dependencies {
+//    implementation fileTree(include: '*.jar', dir: 'libs')
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.2'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.3.2'
+
+    api files('libs/printerlibs.jar')
+    api files('libs/libnative.jar')
 }

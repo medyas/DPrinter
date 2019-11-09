@@ -4,6 +4,9 @@ import android.app.Activity
 import android.bluetooth.BluetoothAdapter
 import android.content.Intent
 import io.flutter.plugin.common.EventChannel
+import android.bluetooth.BluetoothHeadset
+import java.util.*
+
 
 class BluetoothPlugin {
     private val mBluetoothAdapter: BluetoothAdapter? = BluetoothAdapter.getDefaultAdapter()
@@ -15,6 +18,11 @@ class BluetoothPlugin {
 
     fun isAdapterNull() = this.mBluetoothAdapter == null
     fun isEnabled() = this.mBluetoothAdapter?.isEnabled
+    fun isBluetoothConnected(): Boolean {
+        //TODO: Recheck this method
+        return (mBluetoothAdapter != null && mBluetoothAdapter.isEnabled
+                && mBluetoothAdapter.getProfileConnectionState(BluetoothHeadset.GATT) == BluetoothHeadset.STATE_CONNECTED)
+    }
 
     fun startBluetooth(activity: Activity) {
         val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
@@ -27,7 +35,7 @@ class BluetoothPlugin {
         } else this.startBluetooth(activity)
     }
 
-    fun getBoundDevices() = this.mBluetoothAdapter?.bondedDevices
+    fun getBoundDevices() = this.mBluetoothAdapter?.bondedDevices?.toList()
 
     fun sendMsg(data: Any) {
         mEvents.success(data)
@@ -40,5 +48,6 @@ class BluetoothPlugin {
 
     companion object {
         const val REQUEST_ENABLE_BT: Int = 1524
+
     }
 }
