@@ -29,8 +29,12 @@ class Dprint {
     await _channel.invokeMethod('startScan');
   }
 
-  Future<void> getBoundDevices() async {
+  Future<List<Map>> getBoundDevices() async {
     await _channel.invokeMethod('getBoundDevices');
+  }
+
+  Future<void> connectToDevice(Map<String, dynamic> device) async {
+    await _channel.invokeMethod('connectToDevice', device);
   }
 
   Future<void> destroy() async {

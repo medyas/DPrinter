@@ -1,7 +1,6 @@
 package com.siyoumarket.dprint
 
 import android.app.Activity
-import android.app.Dialog
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.content.BroadcastReceiver
@@ -9,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.util.Log
+import com.siyoumarket.dprint.BluetoothPlugin.Companion.REQUEST_ENABLE_BT
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
@@ -20,9 +20,8 @@ import io.flutter.plugin.common.EventChannel
 
 class DprintPlugin(val activity: Activity, val channel: MethodChannel, registrar: Registrar) : MethodCallHandler, PluginRegistry.ActivityResultListener {
 
-    private val mBluetoothAdapter: BluetoothAdapter?
     private lateinit var mResult: Result
-    private lateinit var mEvents: EventChannel.EventSink
+    private lateinit var mBluetoothPlugin: BluetoothPlugin
 
     companion object {
         @JvmStatic
@@ -33,18 +32,16 @@ class DprintPlugin(val activity: Activity, val channel: MethodChannel, registrar
 
             registrar.addActivityResultListener(plugin)
         }
-
-        const val REQUEST_ENABLE_BT: Int = 1524
     }
 
     init {
         this.channel.setMethodCallHandler(this)
-        this.mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
+        this.mBluetoothPlugin = BluetoothPlugin()
 
         EventChannel(registrar.messenger(), "com.siyoumarket.dprint/stream").setStreamHandler(
                 object : EventChannel.StreamHandler {
                     override fun onListen(args: Any, events: EventChannel.EventSink) {
-                        mEvents = events
+                        mBluetoothPlugin.setEventChannel(events)
                         Log.w("MainDprint", "adding listener")
                     }
 
@@ -56,24 +53,30 @@ class DprintPlugin(val activity: Activity, val channel: MethodChannel, registrar
     }
 
     override fun onMethodCall(call: MethodCall, result: Result) {
-        if (this.mBluetoothAdapter == null && "isAvailable" != call.method) {
+        if (this.mBluetoothPlugin.isAdapterNull() && "isAvailable" != call.method) {
             result.error("bluetooth_unavailable", "the device does not have bluetooth", null)
             return
         }
 
         when (call.method) {
             "initBluetooth" -> init()
-            "isAvailable" -> result.success(mBluetoothAdapter != null)
-            "isOn" -> result.success(mBluetoothAdapter?.isEnabled)
-            "startScan" -> startScan()
+            "isAvailable" -> result.success(!this.mBluetoothPlugin.isAdapterNull())
+            "isOn" -> result.success(this.mBluetoothPlugin.isEnabled())
+            "startScan" -> mBluetoothPlugin.startScan(activity)
             "getBoundDevices" -> getBoundDevices()
+            "connectToDevice" -> connectToDevice(call, result)
             "destroy" -> destroy()
             else -> result.notImplemented()
         }
     }
 
+    private fun connectToDevice(call: MethodCall, result: Result) {
+        val device = call.arguments as Map<*, *>
+        Log.d("MainDPrint", "Connecting to Device: ${device["name"]} - ${device["address"]}")
+    }
+
     private fun init() {
-        startBluetooth()
+        mBluetoothPlugin.startBluetooth(activity)
 
         val filter = IntentFilter()
         filter.addAction(BluetoothDevice.ACTION_FOUND)
@@ -84,10 +87,7 @@ class DprintPlugin(val activity: Activity, val channel: MethodChannel, registrar
 //        result.success("Android ${android.os.Build.VERSION.RELEASE}")
     }
 
-    private fun startBluetooth() {
-        val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
-        activity.startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT)
-    }
+
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?): Boolean {
         if (requestCode == REQUEST_ENABLE_BT && resultCode == Activity.RESULT_OK) {
@@ -96,24 +96,17 @@ class DprintPlugin(val activity: Activity, val channel: MethodChannel, registrar
         return false
     }
 
-    private fun startScan() {
-        if (this.mBluetoothAdapter?.isEnabled!!) {
-            mBluetoothAdapter.startDiscovery()
-        } else startBluetooth()
-    }
-
     private fun destroy() {
         this.activity.unregisterReceiver(mReceiver)
-        this.mEvents.endOfStream()
+        this.mBluetoothPlugin.destroy()
     }
 
 
-    private fun getBoundDevices() {
-        val pairedDevices: Set<BluetoothDevice>? = mBluetoothAdapter?.bondedDevices
-        pairedDevices?.forEach { device ->
-            Log.d("MainDPrint", "Bound Device: ${device.name} - ${device.address}")
+    private fun getBoundDevices(): List<Map<String, String>>? {
+        val devices =  mBluetoothPlugin.getBoundDevices()?.toList()
+        return devices?.map<BluetoothDevice?, Map<String, String>> { item ->
+            mapOf<String, String>(Pair("name", item!!.name), Pair("address", item.address))
         }
-
     }
 
     // Create a BroadcastReceiver for ACTION_FOUND.
@@ -127,11 +120,11 @@ class DprintPlugin(val activity: Activity, val channel: MethodChannel, registrar
                     val device = intent.getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE)
 
                     Log.d("MainDPrint", "Device: ${device.name} - ${device.address}")
-                    mEvents.success(mapOf<String, String>(Pair("name", device.name), Pair("address", device.address)))
+                    mBluetoothPlugin.sendMsg(mapOf<String, Any>(Pair("status", 0), Pair("name", device.name), Pair("address", device.address)))
 
                 }
-//                BluetoothAdapter.ACTION_DISCOVERY_STARTED -> mDialog.show()
-//                BluetoothAdapter.ACTION_DISCOVERY_FINISHED -> mDialog.hide()
+                BluetoothAdapter.ACTION_DISCOVERY_STARTED -> mBluetoothPlugin.sendMsg(mapOf<String, Any>(Pair("status", 1)))
+                BluetoothAdapter.ACTION_DISCOVERY_FINISHED -> mBluetoothPlugin.sendMsg(mapOf<String, Any>(Pair("status", 2)))
             }
         }
     }
