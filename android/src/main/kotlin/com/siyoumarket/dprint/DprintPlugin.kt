@@ -100,7 +100,7 @@ class DprintPlugin(private val activity: Activity, private val channel: MethodCh
 
     private fun getBoundDevices(result: Result) {
         val devices = mBluetoothPlugin.getBoundDevices()
-        val list = devices.map<BluetoothDevice?, Map<String, String>> { item ->
+        val list = devices?.map<BluetoothDevice?, Map<String, String>> { item ->
             mapOf<String, String>(Pair("name", item!!.name), Pair("address", item.address))
         }
         result.success(list)
