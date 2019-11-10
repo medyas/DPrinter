@@ -1,8 +1,5 @@
-import 'package:flutter/material.dart';
-import 'dart:async';
-
-import 'package:flutter/services.dart';
 import 'package:dprint/dprint.dart';
+import 'package:flutter/material.dart';
 
 void main() => runApp(MyApp());
 
@@ -12,19 +9,22 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  final printer = Dprint();
+  Dprint printer;
   final List<BeanItem> _beanList = List();
   final List<Map<String, dynamic>> _boundList = List();
   bool _loading = false;
+  bool _connected = false;
 
   @override
   void initState() {
     super.initState();
+
+    printer = Dprint(updateText);
     initPlatformState();
   }
 
   // Platform messages are asynchronous, so we initialize in an async method.
-  Future<void> initPlatformState() async {
+  void initPlatformState() {
     // If the widget was removed from the tree while the asynchronous platform
     // message was in flight, we want to discard the reply rather than calling
     // setState to update our non-existent appearance.
@@ -56,7 +56,7 @@ class _MyAppState extends State<MyApp> {
                 Expanded(
                   child: RaisedButton(
                     onPressed: () async {
-                      await printer.startScan(updateText);
+                      await printer.startScan();
                     },
                     child: Text("Start Scan"),
                   ),
@@ -75,50 +75,61 @@ class _MyAppState extends State<MyApp> {
                 ),
               ],
             ),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Text(
-                "Paired Devices",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            if(!_connected) ...[
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text(
+                  "Paired Devices",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: ListView.builder(
-                shrinkWrap: true,
-                itemBuilder: (context, index) => _buildItem(_boundList[index]),
-                itemCount: _boundList.length,
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemBuilder: (context, index) =>
+                      _buildItem(_boundList[index]),
+                  itemCount: _boundList.length,
+                ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Row(
-                children: <Widget>[
-                  Expanded(
-                    child: Text(
-                      "Available Devices",
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: Text(
+                        "Available Devices",
+                        style:
+                        TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
                     ),
-                  ),
-                  if (_loading)
-                    Container(
-                      margin: const EdgeInsets.all(8.0),
-                      alignment: Alignment.center,
-                      child: Icon(Icons.bluetooth_searching, size: 32,),
-                    ),
-                ],
+                    if (_loading)
+                      Container(
+                        margin: const EdgeInsets.all(8.0),
+                        alignment: Alignment.center,
+                        child: Icon(Icons.bluetooth_searching, size: 32,),
+                      ),
+                  ],
+                ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: ListView.builder(
-                shrinkWrap: true,
-                itemBuilder: (context, index) =>
-                    _buildItem(_beanList[index].toJson()),
-                itemCount: _beanList.length,
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemBuilder: (context, index) =>
+                      _buildItem(_beanList[index].toJson()),
+                  itemCount: _beanList.length,
+                ),
               ),
-            ),
+            ],
+            if(_connected)
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text(
+                  "Connected to Printer",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ),
             RaisedButton(
               onPressed: () => printDemoLabel(),
               child: Text("Print Demo"),
@@ -138,14 +149,14 @@ class _MyAppState extends State<MyApp> {
     else if (item.status == 1)
       _loading = true;
     else if (item.status == 2) _loading = false;
+    else if (item.status == 3) _connected = true;
     setState(() {});
   }
 
   getBoundDevices() async {
-    final List<Map<String, dynamic>> list = await printer.getBoundDevices();
-    _boundList.addAll(list);
-    print("Bound List $list");
-    print(_boundList);
+    final list = await printer.getBoundDevices();
+    final l = list.map((item) => Map<String, dynamic>.from(item));
+    _boundList.addAll(l);
     setState(() {});
   }
 

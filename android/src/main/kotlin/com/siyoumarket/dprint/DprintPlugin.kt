@@ -8,25 +8,22 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.util.Log
-import com.lvrenyang.io.BTPrinting
-import com.lvrenyang.io.Pos
+import android.widget.Toast
 import com.siyoumarket.dprint.BluetoothPlugin.Companion.REQUEST_ENABLE_BT
+import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
 import io.flutter.plugin.common.PluginRegistry
 import io.flutter.plugin.common.PluginRegistry.Registrar
-import io.flutter.plugin.common.EventChannel
-import kotlinx.coroutines.*
-import java.lang.Exception
 
 
-class DprintPlugin(val activity: Activity, val channel: MethodChannel, registrar: Registrar) : MethodCallHandler, PluginRegistry.ActivityResultListener {
+class DprintPlugin(private val activity: Activity, private val channel: MethodChannel, registrar: Registrar) : MethodCallHandler, PluginRegistry.ActivityResultListener {
 
-    private lateinit var mResult: Result
-    private var mBluetoothPlugin: BluetoothPlugin
-    private var mPrinterPlugin: PrinterPlugin
+    private var mBluetoothPlugin = BluetoothPlugin()
+    private var mPrinterPlugin = PrinterPlugin()
+
 
     companion object {
 
@@ -37,7 +34,6 @@ class DprintPlugin(val activity: Activity, val channel: MethodChannel, registrar
             channel.setMethodCallHandler(plugin)
 
             registrar.addActivityResultListener(plugin)
-
         }
 
     }
@@ -45,8 +41,6 @@ class DprintPlugin(val activity: Activity, val channel: MethodChannel, registrar
     init {
 
         this.channel.setMethodCallHandler(this)
-        this.mBluetoothPlugin = BluetoothPlugin()
-        this.mPrinterPlugin = PrinterPlugin()
 
         EventChannel(registrar.messenger(), "com.siyoumarket.dprint/stream").setStreamHandler(
                 object : EventChannel.StreamHandler {
@@ -74,7 +68,7 @@ class DprintPlugin(val activity: Activity, val channel: MethodChannel, registrar
             "isOn" -> result.success(this.mBluetoothPlugin.isEnabled())
             "isConnected" -> result.success(mPrinterPlugin.isConnected())
             "startScan" -> mBluetoothPlugin.startScan(activity)
-            "getBoundDevices" -> getBoundDevices()
+            "getBoundDevices" -> getBoundDevices(result)
             "connectToDevice" -> connectToDevice(call, result)
             "printLabel" -> printLabel(call, result)
             "destroy" -> destroy()
@@ -94,9 +88,7 @@ class DprintPlugin(val activity: Activity, val channel: MethodChannel, registrar
         filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECT_REQUESTED)
         filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED)
         this.activity.registerReceiver(mReceiver, filter)
-
     }
-
 
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?): Boolean {
@@ -106,41 +98,40 @@ class DprintPlugin(val activity: Activity, val channel: MethodChannel, registrar
         return false
     }
 
-    private fun getBoundDevices(): List<Map<String, String>>? {
-        val devices =  mBluetoothPlugin.getBoundDevices()
-        return devices?.map<BluetoothDevice?, Map<String, String>> { item ->
+    private fun getBoundDevices(result: Result) {
+        val devices = mBluetoothPlugin.getBoundDevices()
+        val list = devices.map<BluetoothDevice?, Map<String, String>> { item ->
             mapOf<String, String>(Pair("name", item!!.name), Pair("address", item.address))
         }
+        result.success(list)
     }
 
     private fun connectToDevice(call: MethodCall, result: Result) {
         val device = call.arguments as Map<*, *>
-        Log.d("MainDPrint", "Connecting to Device: ${device["name"]} - ${device["address"]}")
 
-        val res= mPrinterPlugin.connectToPrinter(device, activity)
+        activity.showToast("Connecting to ${device["name"]}...")
+
+        val res = mPrinterPlugin.connectToPrinter(device, activity)
+        if (res) activity.showToast("Connected to ${device["name"]}")
+        else activity.showToast("Failed to connect !")
+
         result.success(res)
     }
 
     private fun printLabel(call: MethodCall, result: Result) {
         if (this.mPrinterPlugin.isConnected()) {
             val label = call.arguments as Map<*, *>
-            Log.d("MainPrint", "Recieved Label: $label")
 
             mPrinterPlugin.printDemo()
-            try {
-                result.success(true)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+            activity.showToast("Printing Label...")
+            result.success(true)
+            return
         }
 
-        try {
-            result.success(false)
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
+        activity.showToast("Please connect to printer !")
+        result.success(false)
+        return
     }
-
 
 
     private fun destroy() {
@@ -162,23 +153,22 @@ class DprintPlugin(val activity: Activity, val channel: MethodChannel, registrar
                     // object and its info from the Intent.
                     val device = intent.getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE)
 
-                    Log.d("MainDPrint", "Device: ${device.name} - ${device.address}")
                     mBluetoothPlugin.sendMsg(mapOf<String, Any>(Pair("status", 0), Pair("name", device.name), Pair("address", device.address)))
 
                 }
                 BluetoothAdapter.ACTION_DISCOVERY_STARTED -> mBluetoothPlugin.sendMsg(mapOf<String, Any>(Pair("status", 1)))
                 BluetoothAdapter.ACTION_DISCOVERY_FINISHED -> mBluetoothPlugin.sendMsg(mapOf<String, Any>(Pair("status", 2)))
 
-
-                BluetoothDevice.ACTION_ACL_CONNECTED -> {
-                    Log.d("MainDprinter", "Connected to Device")
-                }
+                BluetoothDevice.ACTION_ACL_CONNECTED -> mBluetoothPlugin.sendMsg(mapOf<String, Any>(Pair("status", 3)))
 //                BluetoothDevice.ACTION_ACL_DISCONNECT_REQUESTED ->
 //                BluetoothDevice.ACTION_ACL_DISCONNECTED -> connected = false
             }
         }
     }
 
+    private fun Activity.showToast(text: String) {
+        Toast.makeText(this, text, Toast.LENGTH_LONG).show()
+    }
 
 }
 

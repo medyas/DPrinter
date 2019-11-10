@@ -8,7 +8,11 @@ class Dprint {
   final _stream =
   const EventChannel('com.siyoumarket.dprint/stream');
 
-  StreamSubscription _beanList = null;
+  StreamSubscription _beanList;
+
+  Dprint(Function updateData) {
+    _beanList = _stream.receiveBroadcastStream([""]).listen(updateData);
+  }
 
 
   Future<void> init() async {
@@ -27,13 +31,11 @@ class Dprint {
     return await _channel.invokeMethod('isConnected');
   }
 
-  Future<void> startScan(Function updateData) async {
-    if (_beanList == null)
-      _beanList = _stream.receiveBroadcastStream([""]).listen(updateData);
+  Future<void> startScan() async {
     await _channel.invokeMethod('startScan');
   }
 
-  Future<List<Map>> getBoundDevices() async {
+  Future<List<dynamic>> getBoundDevices() async {
     return await _channel.invokeMethod('getBoundDevices');
   }
 
@@ -46,7 +48,7 @@ class Dprint {
   }
 
   Future<void> destroy() async {
-    _beanList = null;
+    _beanList.cancel();
     await _channel.invokeMethod('destroy');
   }
 }

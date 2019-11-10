@@ -1,6 +1,7 @@
-# DPrint
+# DPrinter
 
-A new flutter plugin project.
+A Flutter package to communicate with the Mobile Label Printer(DIR-EB80II) using Bluetooth.
+http://supprinter.com/product-12682-113867.html
 
 ## Getting Started
 
