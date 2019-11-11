@@ -27,7 +27,13 @@ class PrinterPlugin {
 
 
     fun printDemo() {
-        PrintDemo1()
+//        PrintDemo1()
+        val d1 = LabelPrint.printDefaultData("Siyou Market ONE", "Test Product 1", "2.99", "2010030002880")
+        sendBuffer(d1)
+
+
+        val d2 = LabelPrint.printDoubleData("Siyou Market ONE", "Test Product 1", "20% Discount", "2.99", "3.49", "2010030002880")
+        sendBuffer(d2)
     }
 
 

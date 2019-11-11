@@ -75,7 +75,7 @@ class _MyAppState extends State<MyApp> {
                 ),
               ],
             ),
-            if(!_connected) ...[
+            if (!_connected) ...[
               Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: Text(
@@ -99,15 +99,18 @@ class _MyAppState extends State<MyApp> {
                     Expanded(
                       child: Text(
                         "Available Devices",
-                        style:
-                        TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                     ),
                     if (_loading)
                       Container(
                         margin: const EdgeInsets.all(8.0),
                         alignment: Alignment.center,
-                        child: Icon(Icons.bluetooth_searching, size: 32,),
+                        child: Icon(
+                          Icons.bluetooth_searching,
+                          size: 32,
+                        ),
                       ),
                   ],
                 ),
@@ -122,7 +125,7 @@ class _MyAppState extends State<MyApp> {
                 ),
               ),
             ],
-            if(_connected)
+            if (_connected)
               Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: Text(
@@ -130,10 +133,11 @@ class _MyAppState extends State<MyApp> {
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ),
-            RaisedButton(
-              onPressed: () => printDemoLabel(),
-              child: Text("Print Demo"),
-            ),
+            if (_connected)
+              RaisedButton(
+                onPressed: () => printDemoLabel(),
+                child: Text("Print Demo"),
+              ),
           ],
         ),
       ),
@@ -148,7 +152,8 @@ class _MyAppState extends State<MyApp> {
       _beanList.add(item);
     else if (item.status == 1)
       _loading = true;
-    else if (item.status == 2) _loading = false;
+    else if (item.status == 2)
+      _loading = false;
     else if (item.status == 3) _connected = true;
     setState(() {});
   }
@@ -169,7 +174,7 @@ class _MyAppState extends State<MyApp> {
 
   onItemClick(Map<String, dynamic> item) async {
     print(item);
-  print("Paired List: $_boundList");
+    print("Paired List: $_boundList");
     final res = await printer
         .connectToDevice({"name": item["name"], "address": item["address"]});
     print("Connected to device? $res");
