@@ -71,6 +71,7 @@ class DprintPlugin(private val activity: Activity, private val channel: MethodCh
             "getBoundDevices" -> getBoundDevices(result)
             "connectToDevice" -> connectToDevice(call, result)
             "printLabel" -> printLabel(call, result)
+            "printImage" -> printImage(call, result)
             "destroy" -> destroy()
             else -> result.notImplemented()
         }
@@ -133,6 +134,11 @@ class DprintPlugin(private val activity: Activity, private val channel: MethodCh
         return
     }
 
+    private fun printImage(call: MethodCall, result: Result) {
+        val image = call.arguments as ByteArray
+        val res = mPrinterPlugin.printImage(image)
+        result.success(res)
+    }
 
     private fun destroy() {
         this.activity.unregisterReceiver(mReceiver)

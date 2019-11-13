@@ -1,6 +1,7 @@
 package com.siyoumarket.dprint
 
 import android.app.Activity
+import android.graphics.BitmapFactory
 import com.lvrenyang.io.BTPrinting
 import com.lvrenyang.io.Pos
 
@@ -27,13 +28,43 @@ class PrinterPlugin {
 
 
     fun printDemo() {
-//        PrintDemo1()
         val d1 = LabelPrint.printDefaultData("Siyou Market ONE", "Test Product 1", "2.99", "2010030002880")
         sendBuffer(d1)
 
 
         val d2 = LabelPrint.printDoubleData("Siyou Market ONE", "Test Product 1", "20% Discount", "2.99", "3.49", "2010030002880")
         sendBuffer(d2)
+    }
+
+    fun printImage(image: ByteArray): Boolean {
+        val bmp = BitmapFactory.decodeByteArray(image, 0, image.size)
+
+        //TODO test
+       // mPos.POS_SetRightSpacing(0) byteArrayOf(27, 32, 0) change 0 with distance
+//        mPos.POS_Reset() byteArrayOf(27, 64) reset printer
+
+//        mPos.POS_FeedLine()
+//        mPos.POS_S_Align(2)
+
+        // specifies the x and y of print - needs t
+        // ESC $ nL nH
+        //Name Specify absolute position
+        //Code ASCII ESC $ nL nH
+        //     Hex. 1B 24 nL nH
+        //     Decimal 27 36 nL nH
+        //  Defined Region 0 ≤ nL ≤ 255
+        //  0 ≤ nH ≤ 255
+        // try merging with text
+        var ESC_dollors_nL_nH = byteArrayOf(27, 36, 0, 0)
+
+        val imageData = Pos.POS_Bitmap2Data(bmp, 400, 0, 0)
+
+        var cmd = LabelPrint.byteMerger(byteArrayOf(13, 10), byteArrayOf(27, 97, 2)) // merge feedLine with align
+        cmd = LabelPrint.byteMerger(cmd, imageData) // merge image with cmd
+        cmd = LabelPrint.byteMerger(cmd, PRNCMD_TEXT_GAP.toByteArray()) // merge cmd with end of print
+
+        return sendBuffer(cmd)
+
     }
 
 
@@ -95,12 +126,14 @@ class PrinterPlugin {
         sendBuffer(PRNCMD_TEXT_GAP.toByteArray())     // 对纸
     }
 
-
     companion object {
 
         const val printWidth = 312//标签宽度 264 384(2寸) 576(3寸)
         const val printHeight = 234//标签高度 216 600// 强加密密码, 不同机器密码不同，具体咨询志众电子.
         const val PRNCMD_TEXT_GAP = "1241"
+
+
+        val ESC_a_n = byteArrayOf(27, 97, 2) // change 2 to set the align
     }
 }
 

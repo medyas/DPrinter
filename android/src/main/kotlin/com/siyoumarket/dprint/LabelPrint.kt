@@ -83,7 +83,7 @@ object LabelPrint {
     }
 
     // byte1+byte2
-    private fun byteMerger(byte_1: ByteArray?, byte_2: ByteArray?): ByteArray {
+    fun byteMerger(byte_1: ByteArray?, byte_2: ByteArray?): ByteArray {
         var size = 0
         if (byte_1 != null) {
             size += byte_1.size

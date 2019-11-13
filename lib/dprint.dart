@@ -47,6 +47,10 @@ class Dprint {
     return await _channel.invokeMethod('printLabel', label);
   }
 
+  Future<bool> printImage(image) async {
+    return await _channel.invokeMethod('printImage', image);
+  }
+
   Future<void> destroy() async {
     _beanList.cancel();
     await _channel.invokeMethod('destroy');
