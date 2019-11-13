@@ -3,15 +3,19 @@ package com.siyoumarket.dprint
 import android.app.Activity
 import android.graphics.BitmapFactory
 import com.lvrenyang.io.BTPrinting
+import com.lvrenyang.io.Label
 import com.lvrenyang.io.Pos
 
 class PrinterPlugin {
 
     private var mPrinter: BTPrinting = BTPrinting()
     private val mPos = Pos()
+    private val label = Label()
 
     fun connectToPrinter(device: Map<*, *>, activity: Activity): Boolean {
         return try {
+            //TODO: check Label class
+            label.Set(mPrinter)
             mPos.Set(mPrinter)
             mPrinter.Open(device["address"].toString(), activity.applicationContext)
         } catch (e: java.lang.Exception) {
@@ -59,9 +63,30 @@ class PrinterPlugin {
 
         val imageData = Pos.POS_Bitmap2Data(bmp, 400, 0, 0)
 
+        /**
+         * Description: Draw a bitmap at the specified location on the Page page.
+         *
+         * @param startx
+         * The upper left corner of the bitmap is the x coordinate value, which ranges from [0, Page_Width].
+         * @param starty
+         * The upper left corner of the bitmap is the y coordinate value, which ranges from [0, Page_Height].
+         * @param width
+         * The pixel width of the bitmap.
+         * @param height
+         * The pixel height of the bitmap.
+         * @param style
+         * Bitmap printing effects, each of which is defined as follows: Bit Definition 0 Reverse white flag, set 1 bitmap to print in reverse, clear normal printing. [2:1] Rotating flag: 00
+         * Rotate 0°; 01 Rotate 90°; 10 Rotate 180°; 11 Rotate 270° [7:3] Reserved. [11:8]
+         * Bitmap width magnification. [12:15] Bitmap height magnification.
+         * @param pdata
+         * Bitmap data for bitmaps.
+         */
+        label.DrawBitmap(0, 0, 255, 255, 0, imageData)
+
         var cmd = LabelPrint.byteMerger(byteArrayOf(13, 10), byteArrayOf(27, 97, 2)) // merge feedLine with align
         cmd = LabelPrint.byteMerger(cmd, imageData) // merge image with cmd
         cmd = LabelPrint.byteMerger(cmd, PRNCMD_TEXT_GAP.toByteArray()) // merge cmd with end of print
+        cmd = LabelPrint.byteMerger(cmd, byteArrayOf(0))
 
         return sendBuffer(cmd)
 
