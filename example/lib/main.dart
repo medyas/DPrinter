@@ -5,6 +5,7 @@ import 'package:barcode_flutter/barcode_flutter.dart';
 import 'package:dprint/dprint.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter_blue/flutter_blue.dart';
 
 void main() => runApp(MyApp());
 
@@ -20,6 +21,8 @@ class _MyAppState extends State<MyApp> {
   bool _loading = false;
   bool _connected = false;
   GlobalKey globalKey = GlobalKey();
+
+  final _stream = FlutterBlue.instance.state;
 
   Future<void> _capturePng() async {
     RenderRepaintBoundary boundary =
@@ -57,6 +60,25 @@ class _MyAppState extends State<MyApp> {
         appBar: AppBar(
           title: const Text('Plugin example app'),
         ),
+        floatingActionButton: StreamBuilder<bool>(
+          stream: FlutterBlue.instance.isScanning,
+          initialData: false,
+          builder: (c, snapshot) {
+            if (snapshot.data) {
+              return FloatingActionButton(
+                child: Icon(Icons.stop),
+                onPressed: () => FlutterBlue.instance.stopScan(),
+                backgroundColor: Colors.red,
+              );
+            } else {
+              return FloatingActionButton(
+                  child: Icon(Icons.search),
+                  onPressed: () =>
+                      FlutterBlue.instance
+                          .startScan(timeout: Duration(seconds: 4)));
+            }
+          },
+        ),
         body: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -71,7 +93,99 @@ class _MyAppState extends State<MyApp> {
                   )),
               onTap: () async => await _capturePng(),
             ),
-            Row(
+            StreamBuilder<BluetoothState>(
+                stream: FlutterBlue.instance.state,
+                initialData: BluetoothState.unknown,
+                builder: (c, snapshot) {
+                  final state = snapshot.data;
+                  if (state == BluetoothState.on) {
+                    return RefreshIndicator(
+                        onRefresh: () =>
+                            FlutterBlue.instance.startScan(
+                                timeout: Duration(seconds: 4)),
+                        child: SingleChildScrollView(
+                            child: Column(
+                                children: <Widget>[
+                                  Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: Text("Connected Devices"),
+                                  ),
+                                  StreamBuilder<List<BluetoothDevice>>(
+                                    stream: Stream.periodic(
+                                        Duration(seconds: 2))
+                                        .asyncMap((_) =>
+                                    FlutterBlue.instance.connectedDevices),
+                                    initialData: [],
+                                    builder: (c, snapshot) =>
+                                        Column(
+                                          children: snapshot.data
+                                              .map((d) =>
+                                              _buildItem(d)
+                                              /*ListTile(
+                                                title: Text(d.name),
+                                                subtitle: Text(d.id.toString()),
+                                                trailing: StreamBuilder<
+                                                    BluetoothDeviceState>(
+                                                  stream: d.state,
+                                                  initialData: BluetoothDeviceState
+                                                      .disconnected,
+                                                  builder: (c, snapshot) {
+                                                    if (snapshot.data ==
+                                                        BluetoothDeviceState
+                                                            .connected) {
+                                                      return RaisedButton(
+                                                        child: Text('OPEN'),
+                                                        onPressed: () => null,
+                                                      );
+                                                    }
+                                                    return Text(snapshot.data
+                                                        .toString());
+                                                  },
+                                                ),
+                                              ),*/
+                                          )
+                                              .toList(),
+                                        ),
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: Text("Result Scan"),
+                                  ),
+                                  StreamBuilder<List<ScanResult>>(
+                                    stream: FlutterBlue.instance.scanResults,
+                                    initialData: [],
+                                    builder: (c, snapshot) =>
+                                        Column(
+                                          children: snapshot.data
+                                              .map((r) => _buildItem(r.device))
+                                              .toList(),
+                                        ),
+                                  )
+                                ])));
+                  }
+                  return Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        Icon(
+                          Icons.bluetooth_disabled,
+                          size: 200.0,
+                          color: Colors.white54,
+                        ),
+                        Text(
+                          'Bluetooth Adapter is ${state.toString().substring(
+                              15)}.',
+                          style: Theme
+                              .of(context)
+                              .primaryTextTheme
+                              .subhead
+                              .copyWith(color: Colors.white),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+            /*Row(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: <Widget>[
@@ -152,7 +266,7 @@ class _MyAppState extends State<MyApp> {
                   itemCount: _beanList.length,
                 ),
               ),
-            ],
+            ],*/
             if (_connected)
               Padding(
                 padding: const EdgeInsets.all(8.0),
@@ -193,18 +307,22 @@ class _MyAppState extends State<MyApp> {
     setState(() {});
   }
 
-  Widget _buildItem(Map<String, dynamic> item) => ListTile(
-    title: Text(item["name"]),
-    subtitle: Text(item["address"]),
-    leading: Icon(Icons.bluetooth),
-    onTap: () => onItemClick(item),
-  );
+  Widget _buildItem(BluetoothDevice device) =>
+      ListTile(
+        title: Text(device.name),
+        subtitle: Text(device.id.id),
+        leading: Icon(Icons.bluetooth),
+        onTap: () => onItemClick({"name": device.name, "address": device.id.id}),
+      );
 
   onItemClick(Map<String, dynamic> item) async {
     print(item);
     print("Paired List: $_boundList");
     final res = await printer
         .connectToDevice({"name": item["name"], "address": item["address"]});
+    if(res) setState(() {
+      _connected = true;
+    });
     print("Connected to device? $res");
   }
 

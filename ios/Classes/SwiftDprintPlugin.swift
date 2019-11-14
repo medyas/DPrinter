@@ -9,6 +9,14 @@ public class SwiftDprintPlugin: NSObject, FlutterPlugin {
   }
 
   public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
-    result("iOS " + UIDevice.current.systemVersion)
+    if ([@"setLogLevel" isEqualToString:call.method]) {
+        result(nil);
+      } else if ([@"state" isEqualToString:call.method]) {
+        result(nil);
+      } else if([@"isAvailable" isEqualToString:call.method]) {
+
+      } else {
+        result(FlutterMethodNotImplemented);
+      }
   }
 }
