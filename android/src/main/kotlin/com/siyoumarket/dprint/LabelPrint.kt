@@ -2,6 +2,7 @@ package com.siyoumarket.dprint
 
 import android.util.Log
 import com.wisdom.tian.cpp.NativeUtil
+import java.nio.ByteBuffer
 import java.util.*
 
 object LabelPrint {
@@ -178,6 +179,28 @@ object LabelPrint {
 
         dat = zzLabelPrint()
         cmd = byteMerger(cmd, dat)
+        return cmd
+    }
+
+    fun printDemo(qcode: String): ByteArray {
+        var cmd = zzLabelStart()
+        cmd.forEach { byte ->
+            Log.d("MainPrint", "Start Label: $byte") }
+
+        var dat = zzLabelBarcode(110, 200, 8, 80, 2, 0, false, qcode)
+        cmd = byteMerger(cmd, dat)
+        dat = zzLabelEnd()
+        dat.forEach { byte ->
+            Log.d("MainPrint", "End Label: $byte") }
+        cmd = byteMerger(cmd, dat)
+
+        dat = zzLabelPrint()
+        Log.d("MainPrint", "Print Label: $dat")
+        dat.forEach { byte ->
+            Log.d("MainPrint", "Print Label: $byte") }
+
+        cmd = byteMerger(cmd, dat)
+        Log.d("MainPrint", "Print : $cmd")
         return cmd
     }
 

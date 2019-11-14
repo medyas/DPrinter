@@ -10,12 +10,9 @@ class PrinterPlugin {
 
     private var mPrinter: BTPrinting = BTPrinting()
     private val mPos = Pos()
-    private val label = Label()
 
     fun connectToPrinter(device: Map<*, *>, activity: Activity): Boolean {
         return try {
-            //TODO: check Label class
-            label.Set(mPrinter)
             mPos.Set(mPrinter)
             mPrinter.Open(device["address"].toString(), activity.applicationContext)
         } catch (e: java.lang.Exception) {
@@ -31,24 +28,19 @@ class PrinterPlugin {
     }
 
 
-    fun printDemo() {
+    fun printDemo(): Boolean {
         val d1 = LabelPrint.printDefaultData("Siyou Market ONE", "Test Product 1", "2.99", "2010030002880")
         sendBuffer(d1)
 
 
         val d2 = LabelPrint.printDoubleData("Siyou Market ONE", "Test Product 1", "20% Discount", "2.99", "3.49", "2010030002880")
         sendBuffer(d2)
+
+        return true
     }
 
     fun printImage(image: ByteArray): Boolean {
         val bmp = BitmapFactory.decodeByteArray(image, 0, image.size)
-
-        //TODO test
-       // mPos.POS_SetRightSpacing(0) byteArrayOf(27, 32, 0) change 0 with distance
-//        mPos.POS_Reset() byteArrayOf(27, 64) reset printer
-
-//        mPos.POS_FeedLine()
-//        mPos.POS_S_Align(2)
 
         // specifies the x and y of print - needs t
         // ESC $ nL nH
@@ -59,37 +51,35 @@ class PrinterPlugin {
         //  Defined Region 0 ≤ nL ≤ 255
         //  0 ≤ nH ≤ 255
         // try merging with text
-        var ESC_dollors_nL_nH = byteArrayOf(27, 36, 0, 0)
+        var ESC_dollors_nL_nH = byteArrayOf(27, 36, 100, 100)
 
-        val imageData = Pos.POS_Bitmap2Data(bmp, 400, 0, 0)
+        val imageData = Pos.POS_Bitmap2Data(bmp, 450, 0, 0)
 
-        /**
-         * Description: Draw a bitmap at the specified location on the Page page.
-         *
-         * @param startx
-         * The upper left corner of the bitmap is the x coordinate value, which ranges from [0, Page_Width].
-         * @param starty
-         * The upper left corner of the bitmap is the y coordinate value, which ranges from [0, Page_Height].
-         * @param width
-         * The pixel width of the bitmap.
-         * @param height
-         * The pixel height of the bitmap.
-         * @param style
-         * Bitmap printing effects, each of which is defined as follows: Bit Definition 0 Reverse white flag, set 1 bitmap to print in reverse, clear normal printing. [2:1] Rotating flag: 00
-         * Rotate 0°; 01 Rotate 90°; 10 Rotate 180°; 11 Rotate 270° [7:3] Reserved. [11:8]
-         * Bitmap width magnification. [12:15] Bitmap height magnification.
-         * @param pdata
-         * Bitmap data for bitmaps.
-         */
-        label.DrawBitmap(0, 0, 255, 255, 0, imageData)
-
-        var cmd = LabelPrint.byteMerger(byteArrayOf(13, 10), byteArrayOf(27, 97, 2)) // merge feedLine with align
-        cmd = LabelPrint.byteMerger(cmd, imageData) // merge image with cmd
-        cmd = LabelPrint.byteMerger(cmd, PRNCMD_TEXT_GAP.toByteArray()) // merge cmd with end of print
-        cmd = LabelPrint.byteMerger(cmd, byteArrayOf(0))
+        var cmd = START_LABEL
+//        cmd = mergeArrays(cmd, byteArrayOf(13, 10)) // Line
+        cmd = mergeArrays(cmd, byteArrayOf(27, 97, 2))
+        cmd = mergeArrays(cmd, imageData)
+        cmd = mergeArrays(cmd, END_LABEL) // merge cmd with end of print
+        cmd = mergeArrays(cmd, PRINT_LABEL)
 
         return sendBuffer(cmd)
 
+    }
+
+    private fun mergeArrays(arr1: ByteArray, arr2: ByteArray): ByteArray {
+        val result = ByteArray(arr1.size+arr2.size)
+
+        var pos = 0
+        for (element in arr1) {
+            result[pos] = element
+            pos++
+        }
+        for (element in arr2) {
+            result[pos] = element
+            pos++
+        }
+
+        return result
     }
 
 
@@ -159,6 +149,11 @@ class PrinterPlugin {
 
 
         val ESC_a_n = byteArrayOf(27, 97, 2) // change 2 to set the align
+
+
+        val START_LABEL = byteArrayOf(26, 91, 0)
+        val END_LABEL = byteArrayOf(26, 93, 0)
+        val PRINT_LABEL = byteArrayOf(26, 79, 0)
     }
 }
 

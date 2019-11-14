@@ -28,7 +28,7 @@ class _MyAppState extends State<MyApp> {
 //    var img = copyResize(image, width: 555);
     ByteData byteData = await image.toByteData(format: ui.ImageByteFormat.png);
     Uint8List pngBytes = byteData.buffer.asUint8List();
-    print(pngBytes);
+//    print(pngBytes);
 
     printer.printImage(pngBytes);
   }
@@ -64,7 +64,7 @@ class _MyAppState extends State<MyApp> {
             InkWell(
               child: SizedBox(
                   height: 210,
-                  width: 280, // old 260
+                  width: 300, // old 260
                   child: RepaintBoundary(
                     key: globalKey,
                     child: MemberProductLabel(),
@@ -247,9 +247,9 @@ class MemberProductLabel extends StatelessWidget {
   final double lineWidth;
 
   MemberProductLabel({Key key,
-    this.text = "(con cart)",
+    this.text = "20% Discount",
     this.height = 80,
-    this.lineWidth = 1.3})
+    this.lineWidth = 1.7})
       : super(key: key);
 
   @override
@@ -279,57 +279,58 @@ class MemberProductLabel extends StatelessWidget {
           ),
           Row(
             children: <Widget>[
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                mainAxisSize: MainAxisSize.max,
-                children: <Widget>[
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Text(
-                      "Siyou Tech",
-                      textAlign: TextAlign.center,
-                      style:
-                      TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                    ),
-                  ),
-                  BarCodeImage(
-                    padding: EdgeInsets.all(8.0),
-                    hasText: true,
-                    data: "2010030002880",
-                    codeType: BarCodeType.CodeEAN13,
-                    barHeight: height,
-                    lineWidth: lineWidth,
-                    onError: (error) {
-                      print('error = $error');
-                    },
-                  ),
-                ],
-              ),
               Expanded(
                 child: Column(
-                  mainAxisSize: MainAxisSize.max,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.max,
                   children: <Widget>[
-                    Text(
-                      "\€ 1,99",
-                      style: TextStyle(
-                          fontWeight: FontWeight.w800, fontSize: 34.0),
-                      textAlign: TextAlign.center,
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Text(
+                        "Siyou Tech",
+                        textAlign: TextAlign.center,
+                        style:
+                        TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
                     ),
-                    Text(text),
-                    SizedBox(
-                      height: 16.0,
-                    ),
-                    Text(
-                      "\€ 1,49",
-                      style: TextStyle(
-                          fontWeight: FontWeight.w600, fontSize: 28.0),
-                      textAlign: TextAlign.center,
+                    BarCodeImage(
+                      padding: EdgeInsets.all(8.0),
+                      params: EAN13BarCodeParams(
+                        "2010030002880",
+                        withText: true,
+                        barHeight: height,
+                        lineWidth: lineWidth,
+                      ),
+                      onError: (error) {
+                        print('error = $error');
+                      },
                     ),
                   ],
                 ),
+              ),
+              Column(
+                mainAxisSize: MainAxisSize.max,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: <Widget>[
+                  Text(
+                    "\€ 1,99",
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 34.0),
+                    textAlign: TextAlign.center,
+                  ),
+                  Text(text),
+                  SizedBox(
+                    height: 16.0,
+                  ),
+                  Text(
+                    "\€ 1,49",
+                    style: TextStyle(
+                        fontWeight: FontWeight.w500, fontSize: 28.0),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
               )
             ],
           ),
@@ -337,4 +338,17 @@ class MemberProductLabel extends StatelessWidget {
       ),
     );
   }
+}
+
+class CodeEAN13BarCodeParams extends BarCodeParams {
+  CodeEAN13BarCodeParams(
+      String data, {
+        bool withText = false,
+        double lineWidth = 2.0,
+        double barHeight = 100.0,
+        String altText,
+      }) : super(data, withText, lineWidth, barHeight, altText);
+
+  @override
+  double get barCodeWidth => (data.length + 2) * 11 * lineWidth + 13 * lineWidth;
 }
